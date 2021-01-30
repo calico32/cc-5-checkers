@@ -11,31 +11,42 @@
   z-index: 1;
   left: 8px;
   bottom: 8px;
+  transition: bottom 500ms ease-in-out, opacity 500ms ease-in-out;
+  bottom: 0;
+  opacity: 0;
 
   &.show {
+    bottom: 8px;
+    opacity: 1;
+  }
+
+  &.visible {
     visibility: visible;
-    animation: fadein 0.5s, fadeout 0.5s 2.5s;
+  }
+
+  :global(p) {
+    margin: 0;
   }
 }
 
-@keyframes fadein {
-  from {
-    bottom: 0;
-    opacity: 0;
-  }
-  to {
-    bottom: 8px;
-    opacity: 1;
-  }
-}
+// @keyframes fadein {
+//   from {
+//     bottom: 0;
+//     opacity: 0;
+//   }
+//   to {
+//     bottom: 8px;
+//     opacity: 1;
+//   }
+// }
 
-@keyframes fadeout {
-  from {
-    bottom: 8px;
-    opacity: 1;
-  }
-  to {
-    bottom: 0;
-    opacity: 0;
-  }
-}
+// @keyframes fadeout {
+//   from {
+//     bottom: 8px;
+//     opacity: 1;
+//   }
+//   to {
+//     bottom: 0;
+//     opacity: 0;
+//   }
+// }

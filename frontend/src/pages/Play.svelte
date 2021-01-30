@@ -40,9 +40,9 @@
   };
 
   const roomConnect = async ({ id, game: newGame }: GameResponses['enter']) => {
-    await push(`#/pregame?id=${id}`);
     $game = newGame;
     $gameId = id;
+    await push(`#/pregame?id=${id}`);
   };
 
   let snackbarMessage: string | undefined;

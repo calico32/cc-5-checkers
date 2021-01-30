@@ -6,7 +6,7 @@ const path = require('path');
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 // export default <SnowpackUserConfig>{
-/** @type {require('snowpack').SnowpackUserConfig} */
+/** @type {import('snowpack').SnowpackUserConfig} */
 module.exports = {
   plugins: [
     // [
@@ -39,6 +39,7 @@ module.exports = {
     sourcemap: true,
   },
   packageOptions: {
+    polyfillNode: true,
     sourcemap: true,
   },
   routes: [

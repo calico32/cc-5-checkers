@@ -1,4 +1,4 @@
-import type { GameState, Location, Piece, Player } from './types';
+import type { BoardLocation, GameState, Piece, Player } from './game';
 
 export interface GameRequests {
   start: { id: string };
@@ -8,8 +8,8 @@ export interface GameRequests {
   state: { id: string };
 
   move: {
-    oldLocation: Location;
-    newLocation: Location;
+    start: BoardLocation;
+    end: BoardLocation;
   };
 }
 
@@ -19,17 +19,19 @@ export interface GameResponses {
   join: { id: string; player: Player };
   leave: { playerId: string };
 
-  start: { game: GameState };
+  start: { game: GameState; message: string; firstTurn: string };
   state: { game: GameState };
 
-  end: { endType: 'win'; winnerId: string; reason: string } | { endType: 'tie'; reason: string };
+  end: { endType: 'win'; winnerId: string; message: string } | { endType: 'tie'; message: string };
   error: { message: string };
 
+  message: { message: string };
   move: {
+    message: string;
     playerId: string;
-    oldLocation: Location;
-    newLocation: Location;
-    captured?: Piece;
+    start: BoardLocation;
+    end: BoardLocation;
+    captures?: Piece[];
     king: boolean;
   };
 }

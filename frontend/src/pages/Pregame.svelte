@@ -1,14 +1,14 @@
 <script lang="ts">
   import qs from 'qs';
-  import { onDestroy } from 'svelte';
+  import { onDestroy, onMount } from 'svelte';
   import { push, querystring, replace } from 'svelte-spa-router';
   import { fade } from 'svelte/transition';
   import Button from '../components/Button.svelte';
   import Loading from '../components/Loading.svelte';
-  import { game, gameId } from '../data';
+  import { game, gameId, turn } from '../data';
   import type { GameResponses } from '../events';
+  import type { Player } from '../game';
   import { socket } from '../socket';
-  import type { Player } from '../types';
 
   if ($querystring) {
     const parsed = qs.parse($querystring!);
@@ -40,9 +40,18 @@
 
   let players: Player[] | undefined = $game?.players;
 
-  const onStart = ({ game: newGame }: GameResponses['start']) => {
+  const onStart = ({ game: newGame, firstTurn }: GameResponses['start']) => {
     $game = newGame;
-    push(`#/game?id=${$gameId}`);
+    $turn = firstTurn === socket.id;
+
+    const onState = ({ game: state }: GameResponses['state']) => {
+      $game = state;
+      socket.off('state', onState);
+      push(`#/game?id=${$gameId}`);
+    };
+
+    socket.on('state', onState);
+    socket.emit('state', { id: $gameId });
   };
 
   const onConnect = ({ id, game: newGame }: GameResponses['enter']) => {
@@ -63,9 +72,16 @@
     if (message.includes('invalid room code')) replace('#/play');
   };
 
-  if (!$game) {
-    socket.emit('enter', { id: $gameId, name: localStorage.getItem('name') ?? undefined });
-  }
+  onMount(() => {
+    const onState = ({ game: state }: GameResponses['state']) => {
+      $game = state;
+      players = state.players;
+      socket.off('state', onState);
+    };
+
+    socket.on('state', onState);
+    socket.emit('state', { id: $gameId });
+  });
 
   socket.on('start', onStart);
   socket.on('enter', onConnect);
@@ -74,7 +90,7 @@
   socket.on('error', redirectIfError);
   onDestroy(() => {
     socket.off('start', onStart);
-    socket.off('connect', onConnect);
+    socket.off('enter', onConnect);
     socket.off('join', onJoin);
     socket.off('leave', onLeave);
     socket.off('error', redirectIfError);

@@ -25,10 +25,6 @@
   .spacer {
     flex-grow: 1;
   }
-  // :global(nav > *) {
-  //   color: #333;
-  //   margin-left: 12px;
-  // }
 
   :global(svg) {
     width: 24px;
@@ -44,8 +40,22 @@
     align-items: center;
   }
 
-  .circle {
-    margin-left: 1rem;
+  .checker {
+    height: 32px;
+    width: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background-color: red(500);
+    border: 3px solid red(600);
+    :global(svg) {
+      width: 18px;
+      height: 18px;
+      color: red(800);
+    }
   }
 
   .github {
@@ -65,15 +75,15 @@
 </style>
 
 <nav>
-  <div class="circle">
-    <Icon icon="circle" />
+  <div class="checker">
+    <Icon icon="disc" />
   </div>
   <a href="#/">Checkers</a>
   <div class="spacer" />
   <!-- <Button>See code</Button> -->
   <a
     class="github"
-    href="https://github.com/wiisportsresort/cc-5-checkers-game"
+    href="https://github.com/wiisportsresort/cc-5-checkers"
     rel="noopener"
     target="_blank"
   >

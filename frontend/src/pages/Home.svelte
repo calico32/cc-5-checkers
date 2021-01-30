@@ -31,6 +31,7 @@
   header,
   .content {
     max-width: 65ch;
+    line-height: 1.25;
   }
 
   h3 {
@@ -62,68 +63,36 @@
       Play
     </Button>
   </header>
-  <h4>Very checkers. Might break on smaller devices.</h4>
+  <h4>Very good checkers. Real time multiplayer.</h4>
   <div class="content">
+    <span>Might break on smaller devices.</span>
     <div class="how2play">
-      <h2>How to play</h2>
+      <h2>Information</h2>
       <ul>
         <section>
           <h3>Setup</h3>
           <li>
-            Up to 4 people can play this game (starting a game with less than 4 players will fill
-            the rest of the room with computers).
+            One player creates a game, and the join URL/code can be given to the other player. If
+            you don't have friends and want to play against a computer, you can start the game with
+            just yourself.
           </li>
-          <li>The deck is shuffled and all cards are dealt to the 4 players.</li>
-          <li>The player with the 3 of spades goes first.</li>
+          <li>Sides are randomly picked. White goes first.</li>
         </section>
         <section>
           <h3>Objective</h3>
-          <li>Be the first player to play all your cards.</li>
-        </section>
-        <section>
-          <h3>Starting a turn</h3>
-          <li>
-            If there are no cards on the table/stack, you can play any number of any cards, but you
-            cannot play different cards (i.e. three jacks is valid, but placing 4, 5, and 6 isn't).
-          </li>
-          <li>
-            The next player can play a card of the same quanitity and the same or higher value.
-            (i.e. if the first player places two fives 🂥 🂵, you may only place two same/higher value
-            cards like two sixes 🃆 🃖). You may also pass your turn.
-          </li>
-          <li>
-            Card hierarchy is A, K, Q, J, 10, 9, 8, 7, 6, 5, 4, 3, ace being highest and 3 being
-            lowest. 2 is special and is used for flushing.
-          </li>
-        </section>
-        <section>
-          <h3>Ending a turn</h3>
-          <li>Turns keep going until everyone else passes.</li>
-          <li>
-            If everyone passes their turn, the pile is cleared and the player who last played goes
-            first.
-          </li>
-        </section>
-        <section>
-          <h3>Flushing</h3>
-          <li>Playing a 2 flushes (clears) the card pile.</li>
-          <li>
-            If a card is on the top of the pile and you have enough cards to complete the set of 4
-            (make the top 4 cards the same), you may place then and flush the pile even if it is not
-            your turn.
-          </li>
-        </section>
-        <section>
-          <h3>Reversal</h3>
-          <li>
-            Placing a duplicate of a card will reverse the turn order (e.g. if there is a 3 on the
-            pile and you place another 3, the turn order will reverse).
-          </li>
+          <span>Do any of the following:</span>
+          <li>Capture all of your opponent's pieces.</li>
+          <li>Block your opponent from moving.</li>
+          <span>If neither player can play, the game ends in a tie.</span>
         </section>
         <section>
           <h3>Controls</h3>
-          <li>Clicking a card will select it to be played.</li>
-          <li>Click the center pile to place selected cards.</li>
+          <li>Click on one of your pieces to select it.</li>
+          <li>Click on a highlighted location to move to it.</li>
+          <li>
+            If a piece cannot be selected, it will shake. This happens if the piece has nowhere to
+            move or if one of your other pieces can capture.
+          </li>
         </section>
       </ul>
     </div>

@@ -42,10 +42,10 @@ export const socket = new CheckersClient(io(endpoint));
 
 import.meta.env.NODE_ENV === 'development' &&
   socket.onAny((event, ...args) => {
+    console.log(`<-- ${new Date().toISOString()} ${event}`);
     if (event === 'error') {
-      console.error(args[0].error);
+      console.error(args[0].message);
     } else {
-      console.log(`<-- ${new Date().toISOString()} ${event}`);
       console.log(args);
     }
   });

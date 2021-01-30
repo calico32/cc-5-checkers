@@ -1,17 +1,41 @@
 import http from 'http';
+import _ from 'lodash';
 import { nanoid } from 'nanoid';
 import { Server, Socket } from 'socket.io';
 import { GameRequests, GameResponses } from '../../frontend/src/events';
-import { Computer, GameState, Human, Piece, startingLocations } from '../../frontend/src/types';
+import {
+  Computer,
+  GameState,
+  getPiece,
+  getValidMoves,
+  Human,
+  letters,
+  Piece,
+  Player,
+  startingLocations
+} from '../../frontend/src/game';
 
 const store = new Map<string, GameState>();
 
-const getGame = (id: string): string | undefined => {
+const getGameId = (id: string): string | undefined => {
   const games = store.entries();
   for (const [gameId, game] of games) {
     if (game.players.some(player => player.id === id)) return gameId;
   }
   return undefined;
+};
+
+const listify = (array: unknown[]): string => {
+  switch (array.length) {
+    case 0:
+      return '';
+    case 1:
+      return `${array[0]}`;
+    case 2:
+      return `${array[0]} and ${array[1]}`;
+    default:
+      return `${_.dropRight(array).join(', ')}, and ${_.last(array)}`;
+  }
 };
 
 export class CheckersSocket {
@@ -49,6 +73,7 @@ export class CheckersSocket {
   // emit(event: string, ...data: any[]): this;
   emit(event: string, ...data: any[]): this {
     console.log(`--> ${new Date().toISOString()} ${event} ${this.id}`);
+    console.log(data);
     this.socket.emit(event, ...data);
     return this;
   }
@@ -75,9 +100,10 @@ export class CheckersServer extends Server {
       const socket = new CheckersSocket(_socket);
 
       socket.onAny((...args: any[]) => {
-        const [event] = args;
+        const [event, ...params] = args;
 
         console.log(`<-- ${new Date().toISOString()} ${event} ${socket.id}`);
+        console.log(params);
       });
 
       console.log(`<-- ${new Date().toISOString()} connection ${socket.id}`);
@@ -97,8 +123,15 @@ export class CheckersServer extends Server {
         if (game.players.length >= 2)
           return socket.emit('error', { message: 'Room connect: room full' });
 
+        if (game.players.find(p => p.id === socket.id))
+          return socket.emit('error', { message: 'Room connect: already joined' });
+
         const color =
-          game.players.find(p => !!p)?.color === 'white' || Math.random() > 0.5 ? 'black' : 'white';
+          (game.players[0] && game.players[0].color === 'white') || Math.random() > 0.5
+            ? 'red'
+            : 'white';
+
+        console.log(`adding ${color} human`);
         const player = new Human(socket.id, color, name);
         game.players.push(player);
 
@@ -112,22 +145,35 @@ export class CheckersServer extends Server {
       socket.on('start', ({ id }) => {
         const game = store.get(id);
         if (!game) return socket.emit('error', { message: 'Room start: invalid room code' });
-        if (game.players.length < 2) {
-          const color = game.players.filter(p => !!p)[0].color === 'white' ? 'black' : 'white';
+        if (game.players.length === 1) {
+          const color = game.players[0].color === 'white' ? 'red' : 'white';
+          console.log(`adding ${color} computer`);
           game.players.push(new Computer(color));
         }
 
         game.started = true;
-        game.turn = game.players.findIndex(p => p.color === 'black');
+        game.turn = game.players.findIndex(p => p.color === 'white');
         game.players.forEach(player => {
           player.pieces = startingLocations[player.color].map(
             ([x, y]) => new Piece(x, y, player.color)
           );
         });
 
-        this.roomEmit(id, 'start', { game });
-        if (game.players[game.turn] instanceof Computer)
-          this.makeBotMove(game, game.players[game.turn].id);
+        const first = game.players[game.turn];
+
+        this.roomEmit(id, 'start', {
+          game,
+          message: `Game started.`,
+          firstTurn: first.id,
+        });
+
+        setTimeout(() => {
+          this.roomEmit(id, 'message', {
+            message: `Game started. **${first.name}** (${first.color}) goes first.`,
+          });
+
+          if (first.id.startsWith('bot-')) this.makeBotMove(game, first.id);
+        }, 2000);
       });
 
       socket.on('state', ({ id }) => {
@@ -136,9 +182,20 @@ export class CheckersServer extends Server {
         socket.emit('state', { game });
       });
 
-      socket.on('move', ({ oldLocation, newLocation }) => {
-        const game = getGame(socket.id);
+      socket.on('move', req => {
+        const id = getGameId(socket.id);
+        if (!id) return socket.emit('error', { message: 'Move: not in a valid game' });
+        const game = store.get(id);
         if (!game) return socket.emit('error', { message: 'Move: not in a valid game' });
+        const player = game.players.find(p => p.id === socket.id);
+        if (!player) return socket.emit('error', { message: 'Move: not in a valid game' });
+
+        try {
+          this.doMove(game, player, req);
+        } catch (err) {
+          console.log(`caught error: ${typeof err === 'string' ? err : err.message}`);
+          socket.emit('error', { message: typeof err === 'string' ? err : err.message });
+        }
       });
 
       socket.on('leave', ({ id }) => {
@@ -150,15 +207,26 @@ export class CheckersServer extends Server {
         const index = game.players.findIndex(p => p.id === socket.id);
         index !== -1 && game.players.splice(index, 1);
 
-        if (!game.players.some(p => p instanceof Human)) {
+        if (!game.players.some(p => !p.id.startsWith('bot-'))) {
           console.log('deleting room ' + id);
           store.delete(id);
+        } else {
+          try {
+            this.roomEmit(id, 'end', {
+              endType: 'win',
+              winnerId: game.players.find(p => p.id !== socket.id)!.id,
+              message: 'Opponent left. You win!',
+            });
+          } catch (err) {
+            console.log(err.stack);
+            store.delete(id);
+          }
         }
       });
 
       socket.on('disconnect', () => {
-        console.log(`<-- ${new Date().toISOString()} disconnect ${socket.id}`);
-        const id = getGame(socket.id);
+        console.log(`<-- ${new Date().toISOString()} disconnect ${socket?.id ?? '(unknown)'}`);
+        const id = getGameId(socket?.id);
         if (!id) return;
         socket.leave(id);
         const game = store.get(id);
@@ -172,80 +240,146 @@ export class CheckersServer extends Server {
 
           this.roomEmit(id, 'leave', { playerId: socket.id });
         } else {
-          if (!game.players.some(p => p instanceof Human)) return store.delete(id);
-          this.roomEmit(id, 'end', {
-            endType: 'win',
-            winnerId: game.players.find(p => p.id !== socket.id)!.id,
-            reason: 'Opponent left.',
+          if (!game.players.some(p => !p.id.startsWith('bot-'))) return store.delete(id);
+          this.roomEmit(id, 'message', {
+            message: 'Opponent left.',
           });
         }
       });
     });
   }
 
+  doMove(game: GameState, player: Player, { start, end }: GameRequests['move']): void {
+    const opponent = game.players.find(p => p.id !== player.id)!;
+    const piece = getPiece(player, ...start, player.color);
+    if (!piece) throw new Error('Move: invalid piece');
+
+    const validMoves = getValidMoves(game, piece);
+    const move = validMoves.find(
+      ({ path }) => _.isEqual(path[0], start) && _.isEqual(path[path.length - 1], end)
+    );
+    if (!move) throw new Error('Move: invalid move');
+
+    const startingLocation = `${letters[start[0]]}${start[1] + 1}`;
+    const locations = listify(move.path.slice(1).map(([x, y]) => `**${letters[x]}${y + 1}**`));
+    let message: string;
+    const capturedPieces = move.captures?.map(c => getPiece(opponent, ...c, opponent.color)!);
+
+    if (move.captures?.length) {
+      const captures = listify(move.captures.map(([x, y]) => `**${letters[x]}${y + 1}**`));
+      message = `moved from **${startingLocation}** to ${locations}, capturing ${captures}.`;
+    } else {
+      message = `moved from **${startingLocation}** to ${locations}.`;
+    }
+
+    capturedPieces?.forEach(({ x, y }) => {
+      opponent.pieces.splice(
+        opponent.pieces.findIndex(({ x: pX, y: pY }) => pX === x && pY === y),
+        1
+      );
+    });
+
+    [piece.x, piece.y] = move.path[move.path.length - 1];
+    piece.king ||= !!move.king;
+
+    this.roomEmit(game.id, 'move', {
+      message: `**${player.name}** (${player.color}) ${message}`,
+      playerId: player.id,
+      start: move.path[0],
+      end: move.path[move.path.length - 1],
+      king: !!move.king,
+      captures: capturedPieces,
+    });
+
+    setTimeout(() => this.advanceTurn(game), 2000);
+  }
+
   advanceTurn(game: GameState): void {
-    // const game = this.state.get(id);
-    // if (!game) return;
-    // // if you have no cards left, you win!
-    // if (!game.players[game.turn].hand.length) {
-    //   this.emitToRoom(id, 'update', game);
-    //   game.lastTurn = `${game.players[game.turn].name} wins!`;
-    //   return this.emitToRoom(id, 'winner');
-    // }
-    // // if turn is the first player and order is negative, turn should be last player
-    // if (game.turn == 0 && game.order == -1) game.turn = game.players.length - 1;
-    // // if turn is the last player and order is positive, turn should be first player
-    // else if (game.turn == game.players.length - 1 && game.order == 1) game.turn = 0;
-    // // otherwise just add order
-    // else game.turn += game.order;
-    // this.emitToRoom(id, 'update', game);
-    // // if 3 ppl pass, you should flush
-    // if (game.passes > 2) {
-    //   game.passes = 0;
-    //   this.flush(id);
-    // }
-    // if (game.players[game.turn].id.startsWith('bot-')) {
-    //   this.makeBotMove(game.players[game.turn].id);
-    // }
+    if (game.players[(game.turn + 1) % 2].pieces.length === 0) {
+      this.roomEmit(game.id, 'end', {
+        endType: 'win',
+        winnerId: game.players[game.turn].id,
+        message: `${game.players[(game.turn + 1) % 2].name} has no more pieces. **${
+          game.players[game.turn].name
+        }** wins!`,
+      });
+      return;
+    }
+
+    const allMoves = game.players[(game.turn + 1) % 2].pieces.flatMap(piece =>
+      getValidMoves(game, piece)
+    );
+
+    console.log(`next player can make ${allMoves.length} different moves`);
+
+    if (!allMoves.length) {
+      this.roomEmit(game.id, 'message', {
+        message: `**${game.players[(game.turn + 1) % 2].name}** cannot move.`,
+      });
+
+      const futureMoves = game.players[game.turn].pieces.flatMap(piece =>
+        getValidMoves(game, piece)
+      );
+
+      console.log(`next next player can make ${futureMoves.length} different moves`);
+
+      if (!futureMoves.length) {
+        setTimeout(() => {
+          this.roomEmit(game.id, 'message', {
+            message: `**${game.players[game.turn].name}** cannot move.`,
+          });
+        }, 2000);
+        setTimeout(() => {
+          this.roomEmit(game.id, 'end', {
+            endType: 'tie',
+            message: `Neither player can move. Tie!`,
+          });
+        }, 4000);
+        return;
+      }
+
+      setTimeout(() => {
+        this.roomEmit(game.id, 'end', {
+          endType: 'win',
+          winnerId: game.players[game.turn].id,
+          message: `${game.players[(game.turn + 1) % 2].name} cannot move. **${
+            game.players[game.turn].name
+          }** wins!`,
+        });
+      }, 2000);
+
+      return;
+    }
+
+    console.log('incrementing turn');
+
+    game.turn = (game.turn + 1) % 2;
+
+    if (game.players[game.turn].id.startsWith('bot-')) {
+      this.makeBotMove(game, game.players[game.turn].id);
+    }
   }
 
   makeBotMove(game: GameState, playerId: string): void {
-    // const gameId = getGameIdFromPlayerId(id)!;
-    // // console.log(`${gameId}: bot ${id} is trying to make turn`);
-    // const game = stateMap.get(gameId);
-    // if (!game) return console.log('Bot error: game not exist!!!');
-    // game.lastTurn = '';
-    // const bot = game.players.find(player => player.id == id);
-    // if (!bot) return console.log('Bot error: id wronk');
-    // // bot decides to give up if theres doubles/triples
-    // if (game.cardQuantity > 1) {
-    //   game.passes++;
-    //   game.lastTurn = `${bot.name} passed`;
-    //   return setTimeout(() => advanceTurn(gameId), 2000);
-    // }
-    // const values = Array.from(_.clone(cardValues)).reverse();
-    // values.push(values.shift()!);
-    // for (const [index, card] of bot.hand.entries()) {
-    //   if (
-    //     game.stack.length &&
-    //     values.indexOf(card.value) < values.indexOf(game.stack[game.stack.length - 1].value)
-    //   )
-    //     continue;
-    //   // console.log(`bot trying to play ${JSON.stringify(card)}`);
-    //   bot.hand.splice(index, 1);
-    //   game.lastTurn = `${bot.name} played 1 ${card.value}`;
-    //   if (game.stack[game.stack.length - 1]?.value === card.value) {
-    //     game.lastTurn += ' (reversed)';
-    //     game.order *= -1;
-    //   }
-    //   if (card.value == '2') {
-    //     game.lastTurn += ' (flushed)';
-    //     return setTimeout(() => flush(gameId), 2000);
-    //   }
-    //   game.passes = 0;
-    //   game.stack.push(card);
-    //   break;
-    // }
-    // setTimeout(() => advanceTurn(gameId), 2000);
+    console.log('bot trying to find a move');
+
+    const player = game.players.find(p => p.id === playerId)!;
+
+    const allMoves = player.pieces.flatMap(piece => getValidMoves(game, piece));
+
+    let bestMove = allMoves.reduce(
+      (best, next) => ((next.captures?.length ?? 0) > best.captures!.length ? next : best),
+      { captures: [], color: 'red', path: [] }
+    );
+
+    if (bestMove.captures?.length === 0)
+      bestMove = allMoves[Math.floor(Math.random() * allMoves.length)];
+
+    setTimeout(() => {
+      this.doMove(game, player, {
+        start: bestMove.path[0],
+        end: bestMove.path[bestMove.path.length - 1],
+      });
+    }, 2000);
   }
 }
