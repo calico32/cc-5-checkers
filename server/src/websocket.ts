@@ -12,7 +12,7 @@ import {
   letters,
   Piece,
   Player,
-  startingLocations
+  startingLocations,
 } from '../../frontend/src/game';
 
 const store = new Map<string, GameState>();
@@ -73,7 +73,6 @@ export class CheckersSocket {
   // emit(event: string, ...data: any[]): this;
   emit(event: string, ...data: any[]): this {
     console.log(`--> ${new Date().toISOString()} ${event} ${this.id}`);
-    console.log(data);
     this.socket.emit(event, ...data);
     return this;
   }
@@ -103,7 +102,7 @@ export class CheckersServer extends Server {
         const [event, ...params] = args;
 
         console.log(`<-- ${new Date().toISOString()} ${event} ${socket.id}`);
-        console.log(params);
+        // console.log(params);
       });
 
       console.log(`<-- ${new Date().toISOString()} connection ${socket.id}`);
@@ -131,7 +130,7 @@ export class CheckersServer extends Server {
             ? 'red'
             : 'white';
 
-        console.log(`adding ${color} human`);
+        // console.log(`adding ${color} human`);
         const player = new Human(socket.id, color, name);
         game.players.push(player);
 
@@ -147,7 +146,7 @@ export class CheckersServer extends Server {
         if (!game) return socket.emit('error', { message: 'Room start: invalid room code' });
         if (game.players.length === 1) {
           const color = game.players[0].color === 'white' ? 'red' : 'white';
-          console.log(`adding ${color} computer`);
+          // console.log(`adding ${color} computer`);
           game.players.push(new Computer(color));
         }
 
@@ -310,7 +309,7 @@ export class CheckersServer extends Server {
       getValidMoves(game, piece)
     );
 
-    console.log(`next player can make ${allMoves.length} different moves`);
+    // console.log(`next player can make ${allMoves.length} different moves`);
 
     if (!allMoves.length) {
       this.roomEmit(game.id, 'message', {
@@ -321,7 +320,7 @@ export class CheckersServer extends Server {
         getValidMoves(game, piece)
       );
 
-      console.log(`next next player can make ${futureMoves.length} different moves`);
+      // console.log(`next next player can make ${futureMoves.length} different moves`);
 
       if (!futureMoves.length) {
         setTimeout(() => {
@@ -351,7 +350,7 @@ export class CheckersServer extends Server {
       return;
     }
 
-    console.log('incrementing turn');
+    // console.log('incrementing turn');
 
     game.turn = (game.turn + 1) % 2;
 
@@ -361,7 +360,7 @@ export class CheckersServer extends Server {
   }
 
   makeBotMove(game: GameState, playerId: string): void {
-    console.log('bot trying to find a move');
+    // console.log('bot trying to find a move');
 
     const player = game.players.find(p => p.id === playerId)!;
 

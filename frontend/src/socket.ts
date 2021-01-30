@@ -45,7 +45,8 @@ import.meta.env.NODE_ENV === 'development' &&
     console.log(`<-- ${new Date().toISOString()} ${event}`);
     if (event === 'error') {
       console.error(args[0].message);
-    } else {
-      console.log(args);
     }
+    // else {
+    // console.log(args);
+    // }
   });

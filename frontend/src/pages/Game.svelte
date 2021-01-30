@@ -77,21 +77,21 @@
 
     const x = parseInt(el.getAttribute('data-x')!);
     const y = parseInt(el.getAttribute('data-y')!);
-    console.log('-------------------------------------------------------');
-    console.log(`clicked (${x}, ${y})`);
+    // console.log('-------------------------------------------------------');
+    // console.log(`clicked (${x}, ${y})`);
     if (finished) {
-      console.log('bailing because finished');
+      // console.log('bailing because finished');
       return;
     }
     if (!$turn) {
-      console.log('bailing because not our turn');
+      // console.log('bailing because not our turn');
       return;
     }
 
     if (selectedPiece) {
-      console.log('selectedPiece is set');
+      // console.log('selectedPiece is set');
       if (moveHints.find(([hX, hY]) => hX === x && hY === y)) {
-        console.log('clicked move hint, dispatching move');
+        // console.log('clicked move hint, dispatching move');
         socket.emit('move', {
           start: [selectedPiece.x, selectedPiece.y],
           end: [x, y],
@@ -101,7 +101,7 @@
         return;
       }
 
-      console.log('clicked same piece, unsetting selectedPiece');
+      // console.log('clicked same piece, unsetting selectedPiece');
       if (x === selectedPiece.x && y === selectedPiece.y) {
         selectedPiece = undefined;
         moveHints = new Array(8).fill(new Array(8).fill(false));
@@ -109,9 +109,9 @@
       }
     }
 
-    console.log('selectedPiece is not set');
+    // console.log('selectedPiece is not set');
     if (board[y][x]?.color === me?.color) {
-      console.log('clicked one of our pieces');
+      // console.log('clicked one of our pieces');
 
       const allMoves = me?.pieces.flatMap(p => getValidMoves($game!, p));
       const validMoves = getValidMoves($game!, board[y][x]!);
@@ -131,7 +131,7 @@
         return;
       }
 
-      console.log('setting selectedPiece');
+      // console.log('setting selectedPiece');
       selectedPiece = board[y][x];
 
       moveHints = validMoves.map(m => m.path[m.path.length - 1]);
@@ -141,13 +141,13 @@
       //   newHints[y][x] = true;
       // });
 
-      console.log('valid moves');
-      console.log(validMoves);
-      console.log('new moveHints');
-      console.log(moveHints);
+      // console.log('valid moves');
+      // console.log(validMoves);
+      // console.log('new moveHints');
+      // console.log(moveHints);
     } else {
-      console.log('clicked something else');
-      console.log('unsetting selectedPiece');
+      // console.log('clicked something else');
+      // console.log('unsetting selectedPiece');
       selectedPiece = undefined;
       moveHints = new Array(8).fill(new Array(8).fill(false));
     }
