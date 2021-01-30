@@ -1,0 +1,12 @@
+{
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "server"
+  ],
+  "scripts": {
+    "dev": "concurrently -n f,b -c blue,green -i --default-input-target 1 \"yarn workspace frontend run dev\" \"yarn workspace server run dev\"",
+    "build": "concurrently -n f,b -c blue,green \"yarn workspace frontend run build\" \"yarn workspace server run build\"",
+    "start": "yarn workspace server start"
+  }
+}

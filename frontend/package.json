@@ -1,0 +1,36 @@
+{
+  "name": "frontend",
+  "version": "1.0.0",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "dev": "snowpack dev",
+    "build": "NODE_ENV=production snowpack build"
+  },
+  "devDependencies": {
+    "@snowpack/plugin-dotenv": "^2.0.5",
+    "@snowpack/plugin-svelte": "^3.5.1",
+    "@snowpack/plugin-typescript": "^1.2.1",
+    "@types/feather-icons": "^4.7.0",
+    "@types/qs": "^6.9.5",
+    "@types/snowpack-env": "^2.3.3",
+    "axios": "^0.21.1",
+    "concurrently": "^5.3.0",
+    "confetti-js": "^0.0.18",
+    "feather-icons": "^4.28.0",
+    "nanoid": "^3.1.20",
+    "postcss": "^8.2.4",
+    "postcss-cli": "^8.3.1",
+    "qs": "^6.9.6",
+    "rollup-plugin-svelte": "^7.0.0",
+    "sass": "^1.32.4",
+    "snowpack": "^3",
+    "socket.io-client": "^3.1.0",
+    "svelte": "^3.31.2",
+    "svelte-check": "^1.1.27",
+    "svelte-preprocess": "^4.6.1",
+    "svelte-spa-router": "^3.1.0",
+    "ts-node": "^9.1.1",
+    "typescript": "^4.1.3"
+  }
+}

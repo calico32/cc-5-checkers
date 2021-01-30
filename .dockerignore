@@ -1,0 +1,17 @@
+.github
+.vscode
+**/node_modules
+node_modules
+.gitignore
+.vsls.json
+.prettierrc.json
+.env.example
+.git
+README.md
+frontend/build
+server/dist
+**/yarn-error.log
+
+docker-compose.yml
+.dockerignore
+Dockerfile
